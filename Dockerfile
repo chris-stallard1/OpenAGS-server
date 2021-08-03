@@ -1,5 +1,8 @@
 FROM alpine:latest
 COPY . /OpenAGS-server
-RUN chmod +x /OpenAGS-server/setup.sh
-RUN /OpenAGS-server/setup.sh
+RUN apk update &&\
+    apk add --no-cache git python3 py3-pip &&\
+    cd /OpenAGS-server &&\
+    python3 -m pip install --upgrade pip &&\
+    python3 -m pip install -r requirements.txt
 ENTRYPOINT ["bash /OpenAGS-server/entrypoint.sh", "http"]

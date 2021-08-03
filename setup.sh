@@ -1,6 +1,0 @@
-#!/bin/bash
-apk update
-apk add --no-cache git python3 py3-pip
-cd /OpenAGS-server
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
