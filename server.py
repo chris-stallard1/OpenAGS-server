@@ -532,5 +532,3 @@ async def export_to_db():
             await saveProjectNow(projectID)
 
 redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host="openags.cstallar.net")
-
-app.run()
