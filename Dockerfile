@@ -1,7 +1,7 @@
-FROM alpine:latest
+FROM debian:latest
 COPY . /OpenAGS-server
-RUN apk update &&\
-    apk add --no-cache git python3 py3-pip make automake gcc g++ subversion python3-dev &&\
+RUN apt update &&\
+    apt install git python3 python3-pip make automake gcc g++ subversion python3-dev &&\
     cd /OpenAGS-server &&\
     python3 -m pip install --upgrade pip &&\
     python3 -m pip install -r requirements.txt
