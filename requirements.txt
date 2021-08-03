@@ -1,6 +1,5 @@
 quart
 werkzeug
 aiofiles
-sigfig
 openpyxl
 openags

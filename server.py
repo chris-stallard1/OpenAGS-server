@@ -14,11 +14,8 @@ import functools
 import shutil
 from copy import deepcopy
 
-sys.path.append(os.path.join("..","backend"))
+from openags import ActivationAnalysis, MassSensEval, som
 
-from backend import ActivationAnalysis
-from constants import som
-from evaluators import MassSensEval
 
 loop = None
 
