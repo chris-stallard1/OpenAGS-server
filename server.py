@@ -20,11 +20,20 @@ from openags import ActivationAnalysis, MassSensEval, som
 loop = None
 
 app = Quart(__name__)
+redirectedApp = None
 
 activeProjects = dict()
 
+async def HTTPSWrap():
+    global redirectedApp
+    async with open("hostname","r") as f:
+        contents = await f.read()
+        if contents != "":
+            redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents)
+
 @app.before_serving
 async def startup():
+    await HTTPSWrap()
     global loop
     loop = asyncio.get_event_loop() #globally store the event loop, so we can use it later
 
@@ -530,8 +539,3 @@ async def export_to_db():
             await deleteProjectNow(projectID)
         else:
             await saveProjectNow(projectID)
-
-async with open("hostname","r") as f:
-    contents = f.read()
-    if contents != "":
-        redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents)
