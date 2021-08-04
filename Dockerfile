@@ -6,4 +6,5 @@ RUN yum update &&\
     python3 -m pip install --upgrade pip &&\
     python3 -m pip install -r requirements.txt &&\
     chmod +x /OpenAGS-server/docker-scripts/entrypoint.sh
-ENTRYPOINT ["/OpenAGS-server/docker-scripts/entrypoint.sh", "http",""]
+ENTRYPOINT ["/OpenAGS-server/docker-scripts/entrypoint.sh"]
+CMD ["http",""]
