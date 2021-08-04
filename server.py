@@ -92,7 +92,7 @@ async def restore():
 
         stateless = form.get("stateless") == "true"
 
-        stateFile = await uploaded_files.get("stateFile")
+        stateFile = uploaded_files.get("stateFile")
         stateDict = json.loads(stateFile.read())
         stateDict["files"] = newFilenames
         async with aiofiles.open(os.path.join(upload_path, projectID, "state.json"), "w") as f:
