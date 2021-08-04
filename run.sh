@@ -1,3 +1,4 @@
+#!/bin/bash
 python3 -m pip install -U openags
 
 if [ "$1" == "http" ]; then
