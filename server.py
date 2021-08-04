@@ -20,17 +20,14 @@ from openags import ActivationAnalysis, MassSensEval, som
 loop = None
 
 app = Quart(__name__)
-redirectedApp = None
+
+with open('hostname','r') as f:
+    contents = f.read()
+    if contents != "":
+        redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents)
 
 activeProjects = dict()
 
-async def HTTPSWrap():
-    global redirectedApp
-    async with aiofiles.open("hostname","r") as f:
-        contents = await f.read()
-        if contents != "":
-            redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents)
-await HTTPSWrap()
 
 @app.before_serving
 async def startup():
