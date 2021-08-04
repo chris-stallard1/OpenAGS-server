@@ -1,6 +1,7 @@
 #!/bin/bash
 yum update --security -y
 python3 -m pip install -U openags
+ls /https-certs
 
 cd /OpenAGS-server
 if [ "$1" == "http" ]; then
