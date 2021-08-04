@@ -26,7 +26,7 @@ activeProjects = dict()
 
 async def HTTPSWrap():
     global redirectedApp
-    async with open("hostname","r") as f:
+    async with aiofiles.open("hostname","r") as f:
         contents = await f.read()
         if contents != "":
             redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents)
