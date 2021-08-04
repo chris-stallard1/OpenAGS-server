@@ -24,7 +24,7 @@ app = Quart(__name__)
 with open('hostname','r') as f:
     contents = f.read()
     if contents != "":
-        redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents)
+        redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents.strip("\r\n"))
 
 activeProjects = dict()
 
