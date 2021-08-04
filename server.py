@@ -30,6 +30,7 @@ async def HTTPSWrap():
         contents = await f.read()
         if contents != "":
             redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents)
+await HTTPSWrap()
 
 @app.before_serving
 async def startup():
@@ -37,7 +38,6 @@ async def startup():
         os.mkdir(os.path.join(os.getcwd(),"uploads"))
     if not os.path.exists(os.path.join(os.getcwd(),"results")):
         os.mkdir(os.path.join(os.getcwd(),"results"))
-    await HTTPSWrap()
     global loop
     loop = asyncio.get_event_loop() #globally store the event loop, so we can use it later
 

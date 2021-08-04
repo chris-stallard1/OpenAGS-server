@@ -7,10 +7,9 @@ if [ "$1" == "http" ]; then
     python3 -m hypercorn --bind 0.0.0.0:80 server:app
 else
     echo "$2" > hostname
+    cat hostname
     if [ ! -f ./certfile.pem ]; then
-        ls /https-certs
         cp /https-certs/certfile.pem ./certfile.pem
-        ls /https-certs
         cp /https-certs/keyfile.pem ./keyfile.pem
     fi
     python3 -m hypercorn --certfile certfile.pem --keyfile keyfile.pem --bind 0.0.0.0:443 --insecure-bind 0.0.0.0:80 server:redirectedApp
