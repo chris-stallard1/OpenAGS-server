@@ -531,4 +531,7 @@ async def export_to_db():
         else:
             await saveProjectNow(projectID)
 
-redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host="openags.cstallar.net")
+async with open("hostname","r") as f:
+    contents = f.read()
+    if contents != "":
+        redirectedApp = HTTPToHTTPSRedirectMiddleware(app, host=contents)

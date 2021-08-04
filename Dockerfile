@@ -1,9 +1,9 @@
-FROM debian:latest
+FROM amazonlinux:latest
 COPY . /OpenAGS-server
-RUN apt update &&\
-    apt install -y git python3 python3-pip &&\
+RUN yum update &&\
+    yum install -y git python3 python3-pip &&\
     cd /OpenAGS-server &&\
     python3 -m pip install --upgrade pip &&\
     python3 -m pip install -r requirements.txt &&\
-    chmod +x /OpenAGS-server/entrypoint.sh
-ENTRYPOINT ["/OpenAGS-server/entrypoint.sh", "http"]
+    chmod +x /OpenAGS-server/docker-scripts/entrypoint.sh
+ENTRYPOINT ["/OpenAGS-server/docker-scripts/entrypoint.sh", "http",""]
