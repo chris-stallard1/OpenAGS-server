@@ -86,6 +86,7 @@ async def restore():
             pass
     
         for f in spectrumFiles:
+            print("spectrum file")
             p = os.path.join(upload_path,projectID,secure_filename(f.filename))
             newFilenames.append(p)
             await f.save(p)
@@ -102,7 +103,8 @@ async def restore():
         analysisObject = ActivationAnalysis()
         try:
             await loop.run_in_executor(None, analysisObject.load_from_dict, currentProject)
-        except Exception:
+        except Exception as e:
+            print(e)
             await deleteProjectNow(projectID)
             return json.dumps({"id":"error"})
         activeProjects[projectID] = {
@@ -320,9 +322,10 @@ async def deleteProjectNow(projectID):
     p2 = os.path.join(os.getcwd(), "uploads", projectID)
     if os.path.exists(p2):
         shutil.rmtree(p2)
-    if activeProjects[projectID]["saveAction"] != None:
+    if projectID in activeProjects and activeProjects[projectID]["saveAction"] != None:
         activeProjects[projectID]["saveAction"].cancel()
-    del activeProjects[projectID]
+    if projectID in activeProjects:
+        del activeProjects[projectID]
 
 #WebSocket Handler function
 

@@ -197,7 +197,7 @@
                     reset();
                     return showErrorMessage("File Mismatch: Wanted " + window.filesToUpload[i] + ", Got "+uploadedName+".");
                 }
-                data.append("spectrumFiles", fileObject);
+                data.append("spectrumFiles", fileObject[0]);
             }
 
             if(document.getElementById("sensFile") !== null){
@@ -235,6 +235,7 @@
             });
 
             request.open("post", url);
+            window.requestData = data;
             request.send(data);
         }
         function reset(){
