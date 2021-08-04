@@ -11,7 +11,7 @@ else
         ls /https-certs
         cp /https-certs/certfile.pem ./certfile.pem
         ls /https-certs
-        cp /https-certs/privkey.pem ./privkey.pem
+        cp /https-certs/keyfile.pem ./keyfile.pem
     fi
-    python3 -m hypercorn --certfile certfile.pem --keyfile privkey.pem --bind 0.0.0.0:443 --insecure-bind 0.0.0.0:80 server:redirectedApp
+    python3 -m hypercorn --certfile certfile.pem --keyfile keyfile.pem --bind 0.0.0.0:443 --insecure-bind 0.0.0.0:80 server:redirectedApp
 fi
