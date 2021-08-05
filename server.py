@@ -86,7 +86,6 @@ async def restore():
             pass
     
         for f in spectrumFiles:
-            print("spectrum file")
             p = os.path.join(upload_path,projectID,secure_filename(f.filename))
             newFilenames.append(p)
             await f.save(p)
@@ -281,7 +280,6 @@ async def project(projectID, action):
 async def saveProject(projectID):
     """Save the project after 60 seconds of a user being off of the page"""
     await asyncio.sleep(60)
-    print("saving "+projectID)
     global activeProjects
     if projectID not in activeProjects:
         return None
@@ -293,7 +291,6 @@ async def saveProject(projectID):
 
 async def saveProjectNow(projectID):
     """Quicksave function"""
-    print("saving "+projectID)
     global activeProjects
     if projectID not in activeProjects:
         return None
@@ -524,7 +521,6 @@ async def ws(projectID):
     finally:
         activeProjects[projectID]["numUsers"] -= 1
         if activeProjects[projectID]["numUsers"] <= 0: # save project in 1 min if no one reconnects
-            print("started save/delete action")
             if activeProjects[projectID]["stateless"]:
                 activeProjects[projectID]["saveAction"] = asyncio.create_task(deleteProject(projectID))
             else:

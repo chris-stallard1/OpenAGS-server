@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenAGS web service
+After=network.target
+
+[Service]
+WorkingDirectory=/home/openags/OpenAGS-server
+ExecStart=python3 -m hypercorn --bind 0.0.0.0:8080 server:app
+Restart=always
+RestartSec=10
+
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=openags
+
+[Install]
+WantedBy=multi-user.target
