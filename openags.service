@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/home/openags/OpenAGS-server
-ExecStart=python3 -m hypercorn --bind 0.0.0.0:8080 server:app
+ExecStart=/home/openags/OpenAGS-server/run.sh
 Restart=always
 RestartSec=10
 
