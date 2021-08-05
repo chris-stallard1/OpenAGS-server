@@ -3,6 +3,7 @@ Description=OpenAGS web service
 After=network.target
 
 [Service]
+User=openags
 WorkingDirectory=/home/openags/OpenAGS-server
 ExecStart=/home/openags/OpenAGS-server/run.sh
 Restart=always
