@@ -271,7 +271,7 @@ async def project(projectID, action):
         return await(render_template("results.html", analysisObject=analysisObject, projectID=projectID, pathSplit=os.path.split))
     elif action == "delete":
         await deleteProjectNow(projectID)
-        return redirect("/create")
+        return redirect("/")
     else: 
         return ""
 
