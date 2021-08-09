@@ -28,6 +28,8 @@
         The server itself may also go offline at any time and for any length of time, to apply fixes or add features. 
         Please let me know of any issues you encounter under the “issues” section of 
         <a href="https://github.com/chris-stallard1/OpenAGS">https://github.com/chris-stallard1/OpenAGS</a>.
+        <br>
+        If you are a user outside of NIST, please expand the "Specs and Info" section to see how to create a sensitivity table for your reactor and detector. 
     </b>
     <div class="card card-body">
         <p>Create a new project <a href="/create">here</a>
@@ -36,11 +38,60 @@
         </p>
         <button class="mt btn btn-secondary w-25" data-bs-toggle="collapse" data-bs-target="#tutorialVid">Tutorial Video</button>
         <div class="collapse" id="tutorialVid">
+            <b>Note: a more extensive & updated tutorial video is planned (this was created on an older version)</b>
             <iframe class="mt" width="560" height="315" src="https://www.youtube.com/embed/jRw5pBawPpM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
 
         <button class="btn btn-secondary w-25 mt" data-bs-toggle="collapse" data-bs-target="#additionalInfo">Specs and Info</button>
         <div class="collapse" id="additionalInfo">
+        <h5 class="mt">Default Sensitivity File Information</h5>
+        <div class="card card-body">
+            The default sensitivity table pre-loaded in the OpenAGS is calculated based on the following parameters (Table 1), some of which are instrument dependent.  Users should modify the sensitivity table according to their local instrument parameters.
+            <b>Table 1.  Sensitivity calculated based on the nuclear database [1]* and local instrument parameters.</b>
+            <br>
+            Ti 1382 keV count rate (cps): 180
+            <br>
+            Ti foil mass (m, mg): 14.05
+            <br>
+            Calibration factor CF = cps/m * M /(sigma * eff): 190.04
+            <table class="table">
+                <thead>
+                    <th scope="col">Capture Product</th>
+                    <th scope="col">Cross Section (sigma)</th>
+                    <th scope="col">Detector Relative Efficiency (eff)</th>
+                    <th scope="col">Molar Mass (M)</th>
+                    <th scope="col">Sensitivity (CPS/mg) S = CF * sigma * eff / M</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <b><u>Ti-49 1382 keV</u></b>
+                        </td>
+                        <td>5.18</td>
+                        <td>0.62294</td>
+                        <td>47.867</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Ca-41 1943 keV</td>
+                        <td>0.352</td>
+                        <td>.49562</td>
+                        <td>40.078</td>
+                        <td><b>0.82726</b></td>
+                    </tr>
+                    <tr>
+                        <td>Al-28 7724 keV</td>
+                        <td>0.0493</td>
+                        <td>0.1181</td>
+                        <td>26.981</td>
+                        <td><b>0.04101</b></td>
+                    </tr>
+                </tbody>
+            </table>
+            *For the partial gamma cross section, only the top 3 cross sections for each isotope from the EGAF table are included. Future implementations may include the entire library available on the IAEA database. For details of applying “standard less’ analysis of PGAA see [2].
+            <br>[1] R. B. Firestone, G. Molnar, Z. Revay, T. Belgya, D. McNabb and B. Sleaford, The evaluated gamma-ray activation file (EGAF), Report Number: LBNL-56340, Lawrence Berkeley National Laboratory, 2004.
+            <br>[2] Danyal Turkoglu, Heather Chen-Mayer, Rick Paul and Rolf Zeisler, Assessment of PGAA capability for low-level measurements of H in Ti alloys, Analyst, 2017, 142, 3822
+        </div>
         <h5 class="mt">Sensitivity File Format Example (.csv file)</h5>
         <div class="card card-body">
             <p>Note: Half-Life or Decay Constant are only necessary for NAA. They will be ignored for PGAA.</p>

@@ -296,7 +296,7 @@
                           <div class="col-8">
                               <select id="prefPeakType">
                                 {% for k in som["peaks"] %}
-                                    <option {% if k == analysisObject.userPrefs['peak_type'] %} selected {% endif %} value="{{k}}">{{k}}</option>
+                                    <option {% if k == analysisObject.userPrefs['Peak Type'] %} selected {% endif %} value="{{k}}">{{k}}</option>
                                 {% endfor %}
                               </select>
                           </div>
@@ -308,7 +308,7 @@
                         <div class="col-8">
                             <select id="prefBoronPeakType">
                                 {% for k in som["peaks"] %}
-                                    <option {% if k == analysisObject.userPrefs['boron_peak_type'] %} selected {% endif %} value="{{k}}">{{k}}</option>
+                                    <option {% if k == analysisObject.userPrefs['Boron Peak Type'] %} selected {% endif %} value="{{k}}">{{k}}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -320,7 +320,7 @@
                         <div class="col-8">
                             <select id="prefBGType">
                                 {% for k in som["backgrounds"] %}
-                                    <option {% if k == analysisObject.userPrefs['background_type'] %} selected {% endif %} value="{{k}}">{{k}}</option>
+                                    <option {% if k == analysisObject.userPrefs['Background Type'] %} selected {% endif %} value="{{k}}">{{k}}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -330,7 +330,7 @@
                             <p>ROI Width</p>
                         </div>
                         <div class="col-8">
-                            <input class="form-control" id="prefROIWidth" value="{{analysisObject.userPrefs['roi_width']}}"/>
+                            <input class="form-control" id="prefROIWidth" value="{{analysisObject.userPrefs['ROI Width (keV)']}}"/>
                         </div>
                     </div>
                     <div class="row">
@@ -338,12 +338,12 @@
                             <p>B-11 ROI Width</p>
                         </div>
                         <div class="col-8">
-                            <input class="form-control" id="prefBoronROIWidth" value="{{analysisObject.userPrefs['B_roi_width']}}"/>
+                            <input class="form-control" id="prefBoronROIWidth" value="{{analysisObject.userPrefs['B-11 ROI Width (keV)']}}"/>
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="" id="overlapROICheck" {% if analysisObject.userPrefs["overlap_rois"] %}checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" value="" id="overlapROICheck" {% if analysisObject.userPrefs["Overlap ROIs"] %}checked{% endif %}>
                             <label class="form-check-label" for="overlapROICheck">
                               Overlap ROIs
                             </label>
