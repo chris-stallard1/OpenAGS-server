@@ -38,6 +38,56 @@ async def startup():
     global loop
     loop = asyncio.get_event_loop() #globally store the event loop, so we can use it later
 
+#WebSocket handler Utility Functions
+
+async def saveProject(projectID):
+    """Save the project after 60 seconds of a user being off of the page"""
+    await asyncio.sleep(60)
+    global activeProjects
+    if projectID not in activeProjects:
+        return None
+    async with aiofiles.open(os.path.join(os.getcwd(),"uploads",projectID,"state.json"), mode="w") as f:
+        await f.seek(0)
+        await f.write(json.dumps(activeProjects[projectID]["analysisObject"].export_to_dict()))
+    
+    del activeProjects[projectID]
+
+async def saveProjectNow(projectID):
+    """Quicksave function"""
+    global activeProjects
+    if projectID not in activeProjects:
+        return None
+    async with aiofiles.open(os.path.join(os.getcwd(),"uploads",projectID,"state.json"), mode="w") as f:
+        await f.seek(0)
+        await f.write(json.dumps(activeProjects[projectID]["analysisObject"].export_to_dict()))
+
+#Utility Functions
+async def deleteProject(projectID):
+    """Delete function, used for stateless projects"""
+    await asyncio.sleep(300)
+    p1 = os.path.join(os.getcwd(), "results", projectID)
+    if os.path.exists(p1):
+        shutil.rmtree(p1)
+    p2 = os.path.join(os.getcwd(), "uploads", projectID)
+    if os.path.exists(p2):
+        shutil.rmtree(p2)
+    if activeProjects[projectID]["saveAction"] != None:
+        activeProjects[projectID]["saveAction"].cancel()
+    del activeProjects[projectID]
+
+async def deleteProjectNow(projectID):
+    """Delete function, used for all projects"""
+    p1 = os.path.join(os.getcwd(), "results", projectID)
+    if os.path.exists(p1):
+        shutil.rmtree(p1)
+    p2 = os.path.join(os.getcwd(), "uploads", projectID)
+    if os.path.exists(p2):
+        shutil.rmtree(p2)
+    if projectID in activeProjects and activeProjects[projectID]["saveAction"] != None:
+        activeProjects[projectID]["saveAction"].cancel()
+    if projectID in activeProjects:
+        del activeProjects[projectID]
+
 @app.route("/icons/<icon_name>")
 async def get_icon(icon_name):
     """Gets the icon with name icon_name"""
@@ -235,10 +285,12 @@ async def project(projectID, action):
             return contents
 
     if action == "state":
+        await saveProjectNow(projectID)
         async with aiofiles.open(os.path.join(os.getcwd(), "uploads", projectID, "state.json")) as f:
             contents = await f.read()
             return contents, 200, {'Content-Disposition' : 'attachment; filename="state.json"'}
     elif action == "archive":
+        await saveProjectNow(projectID)
         await loop.run_in_executor(None, shutil.make_archive, os.path.join(os.getcwd(), "tmp", projectID), "zip", os.path.join(os.getcwd(), "uploads", projectID))
         async with aiofiles.open(os.path.join(os.getcwd(), "tmp", projectID)+".zip", "rb") as f:
             contents = await f.read()
@@ -274,55 +326,6 @@ async def project(projectID, action):
         return redirect("/")
     else: 
         return ""
-
-#WebSocket handler Utility Functions
-
-async def saveProject(projectID):
-    """Save the project after 60 seconds of a user being off of the page"""
-    await asyncio.sleep(60)
-    global activeProjects
-    if projectID not in activeProjects:
-        return None
-    async with aiofiles.open(os.path.join(os.getcwd(),"uploads",projectID,"state.json"), mode="w") as f:
-        await f.seek(0)
-        await f.write(json.dumps(activeProjects[projectID]["analysisObject"].export_to_dict()))
-    
-    del activeProjects[projectID]
-
-async def saveProjectNow(projectID):
-    """Quicksave function"""
-    global activeProjects
-    if projectID not in activeProjects:
-        return None
-    async with aiofiles.open(os.path.join(os.getcwd(),"uploads",projectID,"state.json"), mode="w") as f:
-        await f.seek(0)
-        await f.write(json.dumps(activeProjects[projectID]["analysisObject"].export_to_dict()))
-
-async def deleteProject(projectID):
-    """Delete function, used for stateless projects"""
-    await asyncio.sleep(300)
-    p1 = os.path.join(os.getcwd(), "results", projectID)
-    if os.path.exists(p1):
-        shutil.rmtree(p1)
-    p2 = os.path.join(os.getcwd(), "uploads", projectID)
-    if os.path.exists(p2):
-        shutil.rmtree(p2)
-    if activeProjects[projectID]["saveAction"] != None:
-        activeProjects[projectID]["saveAction"].cancel()
-    del activeProjects[projectID]
-
-async def deleteProjectNow(projectID):
-    """Delete function, used for all projects"""
-    p1 = os.path.join(os.getcwd(), "results", projectID)
-    if os.path.exists(p1):
-        shutil.rmtree(p1)
-    p2 = os.path.join(os.getcwd(), "uploads", projectID)
-    if os.path.exists(p2):
-        shutil.rmtree(p2)
-    if projectID in activeProjects and activeProjects[projectID]["saveAction"] != None:
-        activeProjects[projectID]["saveAction"].cancel()
-    if projectID in activeProjects:
-        del activeProjects[projectID]
 
 #WebSocket Handler function
 
