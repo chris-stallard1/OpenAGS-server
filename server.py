@@ -12,6 +12,7 @@ import time
 import sys
 import functools
 import shutil
+from tarfile import TarFile
 from copy import deepcopy
 
 from openags import ActivationAnalysis, MassSensEval, som
@@ -114,70 +115,50 @@ async def restore():
             contents = await f.read()
         return contents
     else:
-        upload_path = os.path.join(os.getcwd(), "uploads")
-        projectID = str(uuid.uuid4())
-        #TODO: aiofiles.os.mkdir not working for some reason. Debug this
-        
-        os.mkdir(os.path.join(upload_path,projectID))
-        os.mkdir(os.path.join(os.getcwd(), "results", projectID))
-
-        uploaded_files = await request.files 
-        form = await request.form
-
-        newFilenames = []
-
-        spectrumFiles = uploaded_files.getlist("spectrumFiles")
         try:
-            standardsFile = uploaded_files.get("standardsFile")
-            standardsFilename = os.path.join(upload_path,projectID,secure_filename(standardsFile.filename))
-            newFilenames.append(standardsFilename)
-            await standardsFile.save(standardsFilename)
-        except Exception:
-            pass
-    
-        for f in spectrumFiles:
-            p = os.path.join(upload_path,projectID,secure_filename(f.filename))
-            newFilenames.append(p)
-            await f.save(p)
+            upload_path = os.path.join(os.getcwd(), "uploads")
+            projectID = str(uuid.uuid4())
+            #TODO: aiofiles.os.mkdir not working for some reason. Debug this
 
-        stateless = form.get("stateless") == "true"
+            projectPath = os.path.join(upload_path, projectID)
+            os.mkdir(projectPath)
+            os.mkdir(os.path.join(os.getcwd(), "results", projectID))
 
-        stateFile = uploaded_files.get("stateFile")
-        stateDict = json.loads(stateFile.read())
-        stateDict["files"] = newFilenames
-        async with aiofiles.open(os.path.join(upload_path, projectID, "state.json"), "w") as f:
-            await f.write(json.dumps(stateDict))
+            uploaded_files = await request.files 
+            form = await request.form
 
-        currentProject = stateDict
-        analysisObject = ActivationAnalysis()
-        try:
+            projFile = uploaded_files.get("projFile")
+            tarballPath = os.path.join(os.getcwd(), "tmp", projectID + ".tar")
+            await projFile.save(tarballPath)
+            tarObj = TarFile(tarballPath)
+            await loop.run_in_executor(None, tarObj.extractall, projectPath)
+
+            stateless = form.get("stateless") == "true"
+
+            async with aiofiles.open(os.path.join(projectPath, "state.json"), "r") as stateFile:
+                stateString = await stateFile.read()
+                stateDict = json.loads(stateString)
+
+            newFilenames = [os.path.join(projectPath, os.path.split(fname)[1]) for fname in stateDict["files"]]
+            stateDict["files"] = newFilenames
+            async with aiofiles.open(os.path.join(projectPath, "state.json"), "w") as f:
+                await f.write(json.dumps(stateDict))
+
+            currentProject = stateDict
+            analysisObject = ActivationAnalysis()
             await loop.run_in_executor(None, analysisObject.load_from_dict, currentProject)
+            activeProjects[projectID] = {
+                "analysisObject" : analysisObject,
+                "webSockets" : [],
+                "numUsers" : 0,
+                "stateless" : stateless,
+                "saveAction" : None
+            }
+            return json.dumps({"id" : projectID})
         except Exception as e:
-            print(e)
             await deleteProjectNow(projectID)
-            return json.dumps({"id":"error"})
-        activeProjects[projectID] = {
-            "analysisObject" : analysisObject,
-            "webSockets" : [],
-            "numUsers" : 0,
-            "stateless" : stateless,
-            "saveAction" : None
-        }
-        return json.dumps({"id" : projectID})
+            return json.dumps({"id":"error", "message":str(e)})
 
-@app.route("/stateUpload", methods=["POST"])
-async def handleStateUpload():
-    try:
-        files = await request.files
-        stateFile = files.get("stateFile")
-        stateDict = json.loads(stateFile.read())
-        if stateDict["standardsFilename"] != str(os.path.join(os.getcwd(), "AllSensitivity.csv")):
-            standardsFilename = os.path.split(stateDict["standardsFilename"])[1]
-        else:
-            standardsFilename = ""
-        return json.dumps({"filenames" : [os.path.split(f)[1] for f in stateDict["files"]], "sensFile" : standardsFilename})
-    except Exception:
-        return json.dumps({"filenames" : "error"})
 @app.route("/create", methods=["GET","POST"])
 async def create():
     """Handles GET requests (static page) and POST requests (file uploads/form submissions) for the create project page"""
@@ -186,66 +167,93 @@ async def create():
             contents = await f.read()
         return contents
     else:
-        #POST Method, handle file uploads
+        try:
+            #POST Method, handle file uploads
+            upload_path = os.path.join(os.getcwd(), "uploads")
+            projectID = str(uuid.uuid4())
+            #TODO: aiofiles.os.mkdir not working for some reason. Debug this
+            
+            os.mkdir(os.path.join(upload_path,projectID))
+            os.mkdir(os.path.join(os.getcwd(), "results", projectID))
+
+            uploaded_files = await request.files  
+            form = await request.form      
+            files_list = uploaded_files.getlist("file")
+            try:
+                standardsFile = uploaded_files.get("standardsFile")
+                standardsFilename = os.path.join(upload_path,projectID,secure_filename(standardsFile.filename))
+                await standardsFile.save(standardsFilename)
+            except:
+                #use the default file
+                standardsFilename = os.path.join(os.getcwd(),"AllSensitivity.csv")
+        
+            filenamesList = []
+            for f in files_list:
+                filenamesList.append(os.path.join(upload_path,projectID,secure_filename(f.filename)))
+                p = os.path.join(upload_path,projectID,secure_filename(f.filename))
+                await f.save(p)
+            
+            #check analysis type
+            delayed = form.get("analysisType") == "delayed"
+            stateless = form.get("stateless") == "true"
+
+            #initialize state file
+            async with aiofiles.open(os.path.join(upload_path, projectID, "state.json"), mode="w") as f:
+                await f.seek(0)
+                await f.write(json.dumps({
+                    "title" : escape(form["title"]),
+                    "files" : filenamesList,
+                    "standardsFilename" : standardsFilename,
+                    "ROIsFitted" : False,
+                    "ROIs" : [],
+                    "resultsGenerated" : False,
+                    "delayed" : delayed,
+                    "NAATimes" : [[] for i in range(len(filenamesList))]
+                }))
+
+            async with aiofiles.open(os.path.join(upload_path, projectID, "state.json")) as f:
+                contents = await f.read()
+            currentProject = json.loads(contents)
+            analysisObject = ActivationAnalysis()
+            
+            await loop.run_in_executor(None, analysisObject.load_from_dict, currentProject)
+            
+            activeProjects[projectID] = {
+                "analysisObject" : analysisObject,
+                "webSockets" : [],
+                "numUsers" : 0,
+                "stateless" : stateless,
+                "saveAction" : None
+            }
+            return json.dumps({"id" : projectID})
+        except Exception as e:
+            await deleteProjectNow(projectID)
+            return json.dumps({"id":"error", "message":str(e)})
+
+@app.route("/demo")
+async def create_demo():
+    try:
         upload_path = os.path.join(os.getcwd(), "uploads")
         projectID = str(uuid.uuid4())
-        #TODO: aiofiles.os.mkdir not working for some reason. Debug this
-        
-        os.mkdir(os.path.join(upload_path,projectID))
+
         os.mkdir(os.path.join(os.getcwd(), "results", projectID))
 
-        uploaded_files = await request.files  
-        form = await request.form      
-        files_list = uploaded_files.getlist("file")
-        try:
-            standardsFile = uploaded_files.get("standardsFile")
-            standardsFilename = os.path.join(upload_path,projectID,secure_filename(standardsFile.filename))
-            await standardsFile.save(standardsFilename)
-        except:
-            #use the default file
-            standardsFilename = os.path.join(os.getcwd(),"AllSensitivity.csv")
-    
-        filenamesList = []
-        for f in files_list:
-            filenamesList.append(os.path.join(upload_path,projectID,secure_filename(f.filename)))
-            p = os.path.join(upload_path,projectID,secure_filename(f.filename))
-            await f.save(p)
-        
-        #check analysis type
-        delayed = form.get("analysisType") == "delayed"
-        stateless = form.get("stateless") == "true"
+        shutil.copytree(os.path.join(os.getcwd(), "demo"), os.path.join(upload_path, projectID))
 
-        #initialize state file
-        async with aiofiles.open(os.path.join(os.getcwd(), "uploads", projectID, "state.json"), mode="w") as f:
-            await f.seek(0)
-            await f.write(json.dumps({
-                "title" : escape(form["title"]),
-                "files" : filenamesList,
-                "standardsFilename" : standardsFilename,
-                "ROIsFitted" : False,
-                "ROIs" : [],
-                "resultsGenerated" : False,
-                "delayed" : delayed,
-                "NAATimes" : [[] for i in range(len(filenamesList))]
-            }))
-
+        stateDict = dict()
         async with aiofiles.open(os.path.join(upload_path, projectID, "state.json")) as f:
-            contents = await f.read()
-        currentProject = json.loads(contents)
-        analysisObject = ActivationAnalysis()
-        try:
-            await loop.run_in_executor(None, analysisObject.load_from_dict, currentProject)
-        except Exception:
-            await deleteProjectNow(projectID)
-            return json.dumps({"id" : "error"})
-        activeProjects[projectID] = {
-            "analysisObject" : analysisObject,
-            "webSockets" : [],
-            "numUsers" : 0,
-            "stateless" : stateless,
-            "saveAction" : None
-        }
-        return json.dumps({"id" : projectID})
+            stateString = await f.read()
+            stateDict = json.loads(stateString)
+
+        stateDict["standardsFilename"] = os.path.join(os.getcwd(), "AllSensitivity.csv")
+        stateDict["files"] = [os.path.join(upload_path, projectID, "example"+str(i)+".SPE") for i in range(1,4)]
+
+        async with aiofiles.open(os.path.join(upload_path, projectID, "state.json"),"w") as f:
+            await f.seek(0)
+            await f.write(json.dumps(stateDict))
+        return redirect("/projects/"+projectID+"/view")
+    except Exception:
+        return redirect("/error")
 
 @app.route("/results/<projectID>/<filename>")
 async def serve_result(projectID, filename):
@@ -283,18 +291,12 @@ async def project(projectID, action):
         async with aiofiles.open(os.path.join(os.getcwd(),"notfound.html")) as f:
             contents = await f.read()
             return contents
-
-    if action == "state":
+    if action == "archive":
         await saveProjectNow(projectID)
-        async with aiofiles.open(os.path.join(os.getcwd(), "uploads", projectID, "state.json")) as f:
+        await loop.run_in_executor(None, shutil.make_archive, os.path.join(os.getcwd(), "tmp", projectID), "tar", os.path.join(os.getcwd(), "uploads", projectID))
+        async with aiofiles.open(os.path.join(os.getcwd(), "tmp", projectID)+".tar", "rb") as f:
             contents = await f.read()
-            return contents, 200, {'Content-Disposition' : 'attachment; filename="state.json"'}
-    elif action == "archive":
-        await saveProjectNow(projectID)
-        await loop.run_in_executor(None, shutil.make_archive, os.path.join(os.getcwd(), "tmp", projectID), "zip", os.path.join(os.getcwd(), "uploads", projectID))
-        async with aiofiles.open(os.path.join(os.getcwd(), "tmp", projectID)+".zip", "rb") as f:
-            contents = await f.read()
-            return contents, 200, {'Content-Disposition' : 'attachment; filename="'+projectID+'.zip"'}
+            return contents, 200, {'Content-Disposition' : 'attachment; filename="'+secure_filename(activeProjects["projectID"].get_title())+'.tar"'}
 
     analysisObject = None
     if projectID in activeProjects: #if the project is loaded

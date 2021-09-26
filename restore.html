@@ -71,20 +71,16 @@
           </div>
         </div>
     </div>
-    <h5 class="mt">Step 1: Upload State File (state.json)</h5>
-    <label for="stateFileUpload">Upload State File</label>
-    <input type="file" class="form-control w-25" id="stateFileUpload"/>
-    <button type="button" id="restore_btn" class="btn btn-secondary mt" onclick="uploadStateFile()">Upload</button>
-
-    <h5 class="mt">Step 2: Upload other files</h5>
-    <ul id="requiredFiles"></ul>
-    <div class="form-check" id="statelessInput" style="display:none;">
+    <h5 class="mt">Upload Project File (.tar)</h5>
+    <label for="projFileUpload">Upload Project File</label>
+    <input type="file" class="form-control w-25" id="projFileUpload"/>
+    <div class="form-check" id="statelessInput">
         <input class="form-check-input" type="checkbox" value="" id="statelessCheck" onchange="updateAckModal()" checked>
         <label class="form-check-label" for="statelessCheck">
           Stateless project
         </label>
     </div>
-    <button id="submitFiles" class="btn btn-primary mt" data-bs-toggle="modal" data-bs-target="#statelessAcknowledgement" style="display:none;">Submit</button>
+    <button id="submitFiles" class="btn btn-primary mt" data-bs-toggle="modal" data-bs-target="#statelessAcknowledgement">Submit</button>
     <div id="progress_wrapper" class="d-none mt">
         <label id="progress_status"></label>
         <div class="progress mb-3 w-50">
@@ -107,62 +103,6 @@
                 document.getElementById("statelessInfo").style.display = "none";
             }
         }
-        function uploadStateFile(){
-            var data = new FormData();
-            var request = new XMLHttpRequest();
-            var url = window.location.href.replace("restore", "stateUpload");
-
-            request.responseType = "json";
-
-            if(document.getElementById("stateFileUpload").files.length === 0){
-                return showErrorMessage("Choose a State File")
-            }
-            else if(document.getElementById("stateFileUpload").files[0].name !== "state.json"){
-                return showErrorMessage("Please upload only state.json files")
-            }
-            else{
-                data.append("stateFile", document.getElementById("stateFileUpload").files[0]);
-            }
-
-            request.upload.addEventListener("progress", function (e) {
-                var loaded = e.loaded;
-                var total = e.total;
-                var percent_complete = (loaded / total) * 100;
-                progress.setAttribute("style", `width: ${Math.floor(percent_complete)}%`);
-                progress_status.innerText = `${Math.floor(percent_complete)}% uploaded`;
-
-            })
-
-            request.addEventListener("load", function (e) {
-                if (request.status == 200) {
-                    if(request.response["filenames"] === "error"){
-                        document.getElementById("stateFileUpload").value=null;
-                        return showErrorMessage("Corrupt state.json file");
-                    }
-                    window.filesToUpload = request.response["filenames"];
-                    window.sensFile = request.response["sensFile"];
-                    var listElement = document.getElementById("requiredFiles");
-                    for(var i=0;i<window.filesToUpload.length;i++){
-                        if(i===0){
-                            listElement.innerHTML += "<li><label for='fileInput-" + i.toString() + "'>" + window.filesToUpload[i] + "</label><input type='file' class='form-control w-25' id='fileInput-" + i.toString() + "'/></li>";
-                        }
-                        else{
-                            listElement.innerHTML += "<li style='margin-top:2em;'><label for='fileInput-" + i.toString() + "'>" + window.filesToUpload[i] + "</label><input type='file' class='form-control w-25' id='fileInput-" + i.toString() + "'/></li>";
-                        }
-                    }
-                    if(window.sensFile !== ""){
-                        listElement.innerHTML += "<li style='margin-top:2em;'><label for='sensFile'>Sensitivity Table (" + window.sensFile + ")</label><input type='file' class='form-control w-25' id='sensFile'/></li>";
-                    }
-                    document.getElementById("stateFileUpload").disabled = true;
-                    document.getElementById("submitFiles").style.display = "";
-                    document.getElementById("statelessInput").style.display = "";
-                }
-                reset();
-            });
-            
-            request.open("post", url);
-            request.send(data);
-        }
         function uploadFiles(){
             var data = new FormData();
             var request = new XMLHttpRequest();
@@ -172,46 +112,15 @@
 
             cancel_btn.classList.remove("d-none");
             document.getElementById("progress_wrapper").classList.remove("d-none");
-            document.getElementById("restore_btn").classList.add("d-none");
+            document.getElementById("submitFiles").classList.add("d-none");
 
             request.responseType = "json";
 
-            if(document.getElementById("stateFileUpload").files.length === 0){
+            if(document.getElementById("projFileUpload").files.length === 0){
                 return showErrorMessage("Choose a State File")
             }
-            else if(document.getElementById("stateFileUpload").files[0].name !== "state.json"){
-                return showErrorMessage("Please upload only state.json files")
-            }
             else{
-                data.append("stateFile", document.getElementById("stateFileUpload").files[0]);
-            }
-
-            for(var i=0;i<window.filesToUpload.length;i++){
-                var fileObject = document.getElementById("fileInput-"+i.toString()).files;
-                if(fileObject.length === 0){
-                    reset();
-                    return showErrorMessage("No Input: Wanted "+window.filesToUpload[i])
-                }
-                var uploadedName = fileObject[0].name;
-                if(uploadedName !== window.filesToUpload[i]){
-                    reset();
-                    return showErrorMessage("File Mismatch: Wanted " + window.filesToUpload[i] + ", Got "+uploadedName+".");
-                }
-                data.append("spectrumFiles", fileObject[0]);
-            }
-
-            if(document.getElementById("sensFile") !== null){
-                var fileObject = document.getElementById("sensFile").files;
-                if(fileObject.length === 0){
-                    reset();
-                    return showErrorMessage("No Input: Wanted "+window.sensFile)
-                }
-                var uploadedName = fileObject[0].name;
-                if(uploadedName !== window.sensFile){
-                    reset();
-                    return showErrorMessage("File Mismatch: Wanted " + window.sensFile + ", Got "+uploadedName+".");
-                }
-                data.append("standardsFile", fileObject);
+                data.append("projFile", document.getElementById("projFileUpload").files[0]);
             }
 
             if(document.getElementById("statelessCheck").checked){
@@ -223,7 +132,7 @@
 
             request.addEventListener("load", function (e) {
                 if(request.response["id"] === "error"){
-                    window.location.replace("/error/");
+                    showErrorMessage(request.response["message"])
                 }
                 else{
                     window.location.replace("/projects/"+request.response["id"]+"/view");

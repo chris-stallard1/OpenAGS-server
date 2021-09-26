@@ -1,6 +1,6 @@
 FROM amazonlinux:latest
 COPY . /OpenAGS-server
-RUN yum update &&\
+RUN yum update -y &&\
     yum install -y python3 python3-pip &&\
     cd /OpenAGS-server &&\
     python3 -m pip install --upgrade pip &&\
