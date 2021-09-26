@@ -1,6 +1,6 @@
 #!/bin/bash
 yum update --security -y
-python3 -m pip install -U openags
+python3 -m pip install -U xylib-py-wheels openags 
 
 cd /OpenAGS-server
 if [ "$1" == "http" ]; then
