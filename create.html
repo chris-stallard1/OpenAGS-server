@@ -95,8 +95,18 @@
     <label for="uploadedFilesList" class="mt">Upload Spectrum Files</label>
     <ul class="list-group" id="uploadedFilesList"></ul>
     <input type="file" class="form-control w-25" id="filesUpload" onchange="updateFileList(this)" multiple/>
-    <label for="standardsFileUpload">Upload Sensitivity Table</label>
+    <label for="standardsFileUpload">Upload k0 Table (optional)</label>
     <input type="file" class="form-control w-25" id="standardsFileUpload"/>
+    <label for="effTableUpload">Upload Detector Efficiency Table</label>
+    <input type="file" class="form-control w-25" id="effTableUpload"/>
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="" id="absCheck" onchange="updateFluxEntry()" checked>
+        <label class="form-check-label" for="absCheck">
+          Calculate absolute masses
+        </label>
+    </div>
+    <label for="fluxEntry">Reactor Flux</label>
+    <input type="text" class="form-control w-25" id="fluxEntry"/>
     <div class="form-check">
         <input class="form-check-input" type="checkbox" value="" id="statelessCheck" onchange="updateAckModal()" checked>
         <label class="form-check-label" for="statelessCheck">
@@ -149,6 +159,14 @@
                 }
             }
         }
+        function updateFluxEntry(){
+            if(document.getElementById("absCheck").checked){
+                document.getElementById("fluxEntry").disabled = false;
+            }
+            else{
+                document.getElementById("fluxEntry").disabled = true;
+            }
+        }
         function uploadFiles(){
             if(currentFilesList.length === 0){
                 return showErrorMessage("Please Add Spectrum Files.");
@@ -176,14 +194,18 @@
             }
 
             if(document.getElementById("standardsFileUpload").files[0] == null){
-                if(!document.getElementById("PGAACheck").checked){
-                    reset();
-                    return showErrorMessage("NAA Analyses must provide sensitivity tables.");
-                }
                 data.append("standardsFile", "");
             }
             else{
                 data.append("standardsFile", document.getElementById("standardsFileUpload").files[0]);
+            }
+
+            if(document.getElementById("effTableUpload").files[0] == null){
+                showErrorMessage("No efficiency table provided, so a default will be used (NOT RECOMMENDED)");
+                data.append("effTable", "")
+            }
+            else{
+                data.append("effTable", document.getElementById("effTableUpload").files[0]);
             }
 
             if(document.getElementById("PGAACheck").checked){
@@ -193,6 +215,18 @@
                 data.append("analysisType", "delayed");
             }
 
+            if(document.getElementById("absCheck").checked){
+                let flux = document.getElementById("fluxEntry").value;
+                if(flux === ""){
+                    reset();
+                    return showErrorMessage("Absolute measurements must provide flux")
+                }
+                data.append("normalization", "absolute");
+                data.append("flux", flux);
+            }
+            else{
+                data.append("normalization", "relative")
+            }
             if(document.getElementById("statelessCheck").checked){
                 data.append("stateless", "true")
             }
@@ -211,9 +245,9 @@
             })
 
             request.addEventListener("load", function (e) {
-                if (request.status == 200) {
+                if (request.status === 200) {
                     if(request.response["id"] === "error"){
-                        window.location.replace("/error/");
+                        window.location.replace("/error");
                     }
                     else{
                         window.location.replace("/projects/"+request.response["id"]+"/view");

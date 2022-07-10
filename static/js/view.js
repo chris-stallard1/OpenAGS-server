@@ -1,29 +1,49 @@
-//unintended but incredibly smart solution that uses ws:// if we are on http, but wss:// if we are on https
+//unintended but smart solution that uses ws:// if we are on http, but wss:// if we are on https
 var wsUrl = window.location.href.toString().replace("http","ws").replace("view","ws");
 var ws = new WebSocket(wsUrl);
 ws.onmessage = function (event) {
-    var data = JSON.parse(event.data);
+    let data = JSON.parse(event.data);
     switch(data.type){
         case "titleUpdate":
             document.getElementById("cdTitle").value = data.newTitle;
             break;
+        case "batchUpdateResponse":
+            batches = Object.entries(data.batches);
+            let selectInnerHTML = "";
+            for(let i=0; i<b.length; i++) {
+                selectInnerHTML = selectInnerHTML + "<option value=\"" + b.toString() + "\">" + filesList[b] + "</option>";
+            }
+            selectInnerHTML = DOMPurify.sanitize(selectInnerHTML);
+            for(let j=0;j<filesList.length;j++) {
+                let selectObject = document.getElementById("batchSelect-" + j.toString());
+                if(!j.toString() in batches){
+                    selectInnerHTML = selectInnerHTML + "<option value=\"" + j.toString() + "\">" + filesList[j] + "</option>";
+                }
+                selectObject.innerHTML = selectInnerHTML;
+                for(const [key,value] of batches){
+                    if(value.includes(j)){
+                        selectObject.value = key;
+                    }
+                }
+            }
+            break;
         case "isotopeUpdateResponse":
-            var currentIsotopes = data.currentIsotopes;
-            var newInnerHTML = "";
-            for(var i=0;i<currentIsotopes.length;i++){
-                var isotope = currentIsotopes[i];
-                var newElement = "<p class='iso-label'>" + isotope  + "</p>";
-                var removeButton = '<img class="rmv-btn" src="/icons/file-x.svg" onclick="removeIsotope('+"'"+isotope+"'"+')">';
+            let currentIsotopes = data.currentIsotopes;
+            let newInnerHTML = "";
+            for(let i=0;i<currentIsotopes.length;i++){
+                let isotope = currentIsotopes[i];
+                let newElement = "<p class='iso-label'>" + isotope  + "</p>";
+                let removeButton = '<img class="rmv-btn" src="/icons/file-x.svg" onclick="removeIsotope('+"'"+isotope+"'"+')">';
                 newInnerHTML += "<li class='list-group-item w-50' id='"+isotope+"'>" + newElement + removeButton +"</li>";
             }
             document.getElementById("selectedIsotopes").innerHTML = DOMPurify.sanitize(newInnerHTML);
-            var newSelectHTML = "";
-            for(var i=0;i<data.ROIRanges.length;i++){
-                newSelectHTML += "<option value='"+data.ROIRanges[i][0]+","+data.ROIRanges[i][1]+","+data.ROIIndicies[i][0].toString()+","+data.ROIIndicies[i][1].toString()+"'>"+data.ROIRanges[i][0]+"-"+data.ROIRanges[i][1]+" keV ("+data.ROIIsotopes[i]+")</option>"
+            let newSelectHTML = "";
+            for(let i=0;i<data.ROIRanges.length;i++){
+                newSelectHTML += "<option value='"+data.ROIRanges[i][0]+","+data.ROIRanges[i][1]>+"'>"+data.ROIRanges[i][0]+"-"+data.ROIRanges[i][1]+" keV ("+data.ROIIsotopes[i]+")</option>";
             }
             
             document.getElementById("compRangeSelect").innerHTML = DOMPurify.sanitize("<option selected value='custom'>Custom Range</option>" + newSelectHTML);
-            for(var i=0;i<filesList.length;i++){
+            for(let i=0;i<filesList.length;i++){
                 document.getElementById("zoomToRegion-"+i.toString()).innerHTML = DOMPurify.sanitize("<option selected value=''>Whole Spectrum</option>" + newSelectHTML);
             }
 
@@ -31,6 +51,7 @@ ws.onmessage = function (event) {
         case "NAATimeUpdate":
             NAATimes[data.fileIndex] = data.times;
             updateShownTimes();
+
             break;
         case "error":
             showErrorMessage(data.text);
@@ -55,8 +76,8 @@ function startAnalysis(){
     }
     else{
         try {
-            var sw = false;
-            for(var i=0;i<NAATimes.length;i++){
+            let sw = false;
+            for(let i=0;i<NAATimes.length;i++){
                 if(NAATimes[i].length === 0){
                     sw=true;
                     document.getElementById("timeFileSelect").value = filesList[i];
@@ -79,7 +100,7 @@ function startAnalysis(){
  * Send an update when the user presses the submit button in the ROI modal. This keeps the backend and other users syncd.
  */
 function submitROIs(){
-    var wsObj = {
+    let wsObj = {
         "type" : "isotopeUpdate",
         "addedIsotopes" : addedIsotopes,
         "removedIsotopes" : removedIsotopes
@@ -91,13 +112,13 @@ function submitROIs(){
  * Send a WebSocket request to update the times for NAA
  */
 function sendNAATimes(){
-    var irrTime = parseFloat(document.getElementById("irrTimeInput").value);
-    var waitTime = parseFloat(document.getElementById("waitTimeInput").value);
+    let irrTime = parseFloat(document.getElementById("irrTimeInput").value);
+    let waitTime = parseFloat(document.getElementById("waitTimeInput").value);
     if(isNaN(irrTime) || isNaN(waitTime)){
         return showErrorMessage("Please enter times as numbers, in minutes.");
     }
-    var allTimes = [irrTime, waitTime];
-    var wsObj = {
+    let allTimes = [irrTime, waitTime];
+    let wsObj = {
         "type" : "NAATimeUpdate",
         "fileIndex" : filesList.indexOf(document.getElementById("timeFileSelect").value),
         "times" : allTimes
@@ -109,15 +130,15 @@ function sendNAATimes(){
  * Send a WebSocket request to update the analysis settings (user preferences)
  */
 function sendPrefUpdates(){
-    var ROIWidth = parseFloat(document.getElementById("prefROIWidth").value);
-    var boronROIWidth = parseFloat(document.getElementById("prefBoronROIWidth").value);
+    let ROIWidth = parseFloat(document.getElementById("prefROIWidth").value);
+    let boronROIWidth = parseFloat(document.getElementById("prefBoronROIWidth").value);
     if(isNaN(ROIWidth) || isNaN(boronROIWidth) || ROIWidth < 0 || boronROIWidth < 0){
         return showErrorMessage("Please enter ROI widths as positive numbers.")
     }
-    var peakType = document.getElementById("prefPeakType").value;
-    var boronPeakType = document.getElementById("prefBoronPeakType").value;
-    var bgType = document.getElementById("prefBGType").value;
-    var overlapROIs = document.getElementById("overlapROICheck").checked;
+    let peakType = document.getElementById("prefPeakType").value;
+    let boronPeakType = document.getElementById("prefBoronPeakType").value;
+    let bgType = document.getElementById("prefBGType").value;
+    let overlapROIs = document.getElementById("overlapROICheck").checked;
     wsObj = {
         "type" : "userPrefsUpdate",
         "newPrefs" : {
@@ -136,7 +157,7 @@ function sendPrefUpdates(){
  * Updates the document title (sends WebSocket)
  */
 function updateTitle(){
-    var newTitle = document.getElementById("cdTitle").value;
+    let newTitle = document.getElementById("cdTitle").value;
     ws.send('{"type":"titleUpdate","newTitle":"'+newTitle+'"}');
 }
 
@@ -144,29 +165,29 @@ function updateTitle(){
  * Update the graph in the compare modal, using all info the user has entered
  */
 function updateCompareModal(){
-    var filename1 = document.getElementById("file1Select").value;
-    var filename2 = document.getElementById("file2Select").value;
-    var file1Index = filesList.indexOf(filename1);
-    var file2Index = filesList.indexOf(filename2);
-    var rangeSelectValue = document.getElementById("compRangeSelect").value;
-    if(rangeSelectValue == "custom"){
-        var minEnergy = parseFloat(document.getElementById("lowerBoundInput").value);
-        var maxEnergy = parseFloat(document.getElementById("upperBoundInput").value);
+    let filename1 = document.getElementById("file1Select").value;
+    let filename2 = document.getElementById("file2Select").value;
+    let file1Index = filesList.indexOf(filename1);
+    let file2Index = filesList.indexOf(filename2);
+    let rangeSelectValue = document.getElementById("compRangeSelect").value;
+    if(rangeSelectValue === "custom"){
+        let minEnergy = parseFloat(document.getElementById("lowerBoundInput").value);
+        let maxEnergy = parseFloat(document.getElementById("upperBoundInput").value);
     }
     else{
-        var range = rangeSelectValue.split(",")
-        var minEnergy = parseFloat(range[0]);
-        var maxEnergy = parseFloat(range[1]);
+        let range = rangeSelectValue.split(",")
+        let minEnergy = parseFloat(range[0]);
+        let maxEnergy = parseFloat(range[1]);
     }
-    var plot1 = document.getElementById("file-"+file1Index);
-    var plot2 = document.getElementById("file-"+file2Index);
-    var xData1 = plot1.data[0].x.slice(findClosest(plot1.data[0].x,minEnergy), findClosest(plot1.data[0].x,maxEnergy));
-    var xData2 = plot2.data[0].x.slice(findClosest(plot2.data[0].x,minEnergy), findClosest(plot2.data[0].x,maxEnergy));
-    var yData1 = plot1.data[0].y.slice(findClosest(plot1.data[0].x,minEnergy), findClosest(plot1.data[0].x,maxEnergy));
-    var yData2 = plot2.data[0].y.slice(findClosest(plot2.data[0].x,minEnergy), findClosest(plot2.data[0].x,maxEnergy));
-    var overlayGraphs = document.getElementById("overlayCheckbox").checked;
+    let plot1 = document.getElementById("file-"+file1Index);
+    let plot2 = document.getElementById("file-"+file2Index);
+    let xData1 = plot1.data[0].x.slice(findClosest(plot1.data[0].x,minEnergy), findClosest(plot1.data[0].x,maxEnergy));
+    let xData2 = plot2.data[0].x.slice(findClosest(plot2.data[0].x,minEnergy), findClosest(plot2.data[0].x,maxEnergy));
+    let yData1 = plot1.data[0].y.slice(findClosest(plot1.data[0].x,minEnergy), findClosest(plot1.data[0].x,maxEnergy));
+    let yData2 = plot2.data[0].y.slice(findClosest(plot2.data[0].x,minEnergy), findClosest(plot2.data[0].x,maxEnergy));
+    let overlayGraphs = document.getElementById("overlayCheckbox").checked;
     if(overlayGraphs){
-        var data = [
+        let data = [
             {
                 x : xData1,
                 y : yData1,
@@ -180,7 +201,7 @@ function updateCompareModal(){
                 name: filename2
             }
         ];
-        var layout = {
+        let layout = {
             title: "Comparison ("+minEnergy+"-"+maxEnergy+" keV)",
             showlegend: false,
             xaxis: {
@@ -193,7 +214,7 @@ function updateCompareModal(){
         Plotly.react(document.getElementById("compareSpectraPlot"),data,layout,universalPlotConfig);
     }
     else{
-        var data = [
+        let data = [
             {
                 x : xData1,
                 y : yData1,
@@ -211,7 +232,7 @@ function updateCompareModal(){
                 yaxis : "y2"
             }
         ];
-        var layout = {
+        let layout = {
             title: "Comparison ("+minEnergy+"-"+maxEnergy+" keV)",
             showlegend: false,
             xaxis: { 
@@ -259,13 +280,13 @@ function updateCompareModal(){
  * @param {Number} i 
  */
 function zoomToRegion(i){
-    var selectObject = document.getElementById("zoomToRegion-"+i.toString());
+    let selectObject = document.getElementById("zoomToRegion-"+i.toString());
     if(selectObject.value === ""){
-        var plot = document.getElementById("file-"+i.toString());
-        var xdata = plot.data[0].x
+        let plot = document.getElementById("file-"+i.toString());
+        let xdata = plot.data[0].x
         document.getElementById("minEnergyInput-"+i.toString()).value = xdata[0];
         document.getElementById("maxEnergyInput-"+i.toString()).value = xdata[xdata.length - 1];
-        var newLayout = {
+        let newLayout = {
             xaxis : {
                 title: plot.layout.xaxis.title,
                 range: [xdata[0], xdata[xdata.length - 1]]
@@ -278,12 +299,21 @@ function zoomToRegion(i){
         };
     }
     else{
-        var values = selectObject.value.split(",");
-        var plot = document.getElementById("file-"+i.toString());
-        var dataRange = plot.data[0].y.slice(parseInt(values[2]), parseInt(values[3]));
+        let values = selectObject.value.split(",");
+        let plot = document.getElementById("file-"+i.toString());
+        let i = 0;
+        while(plot.data[0].x[i]<parseFloat(values[0])){
+            i = i + 1;
+        }
+        let minIndex = i - 1;
+        while(plot.data[0].x[i]<parseFloat(values[1])){
+            i = i + 1;
+        }
+        let maxIndex = i;
+        let dataRange = plot.data[0].y.slice(minIndex, maxIndex);
         document.getElementById("minEnergyInput-"+i.toString()).value = values[0];
         document.getElementById("maxEnergyInput-"+i.toString()).value = values[1];
-        var newLayout = {
+        let newLayout = {
             xaxis : {
                 title: plot.layout.xaxis.title,
                 range: [parseFloat(values[0]), parseFloat(values[1])]
@@ -303,19 +333,19 @@ function zoomToRegion(i){
  * @param {Number} i 
  */
 function updateRange(i){
-    var minEnergy = parseFloat(document.getElementById("minEnergyInput-"+i.toString()).value);
-    var maxEnergy = parseFloat(document.getElementById("maxEnergyInput-"+i.toString()).value);
-    var plot = document.getElementById("file-"+i.toString());
+    let minEnergy = parseFloat(document.getElementById("minEnergyInput-"+i.toString()).value);
+    let maxEnergy = parseFloat(document.getElementById("maxEnergyInput-"+i.toString()).value);
+    let plot = document.getElementById("file-"+i.toString());
     if(isNaN(minEnergy) || isNaN(maxEnergy) || maxEnergy <= minEnergy){
-        var range = plot.layout.xaxis.range;
+        let range = plot.layout.xaxis.range;
         document.getElementById("minEnergyInput-"+i.toString()).value = range[0].toString();
         document.getElementById("maxEnergyInput-"+i.toString()).value = range[1].toString();
         return showErrorMessage("Please enter decimal numbers for the data range, with Max. Energy > Min. Energy.");
     }
-    var lowerIndex = findClosest(plot.data[0].x, minEnergy);
-    var upperIndex = findClosest(plot.data[0].x, maxEnergy);
-    var dataRange = plot.data[0].y.slice(lowerIndex, upperIndex);
-    var myLayout = {
+    let lowerIndex = findClosest(plot.data[0].x, minEnergy);
+    let upperIndex = findClosest(plot.data[0].x, maxEnergy);
+    let dataRange = plot.data[0].y.slice(lowerIndex, upperIndex);
+    let myLayout = {
         xaxis : {
             title: plot.layout.xaxis.title,
             range: [minEnergy, maxEnergy]
@@ -341,7 +371,7 @@ function addIsotope(isotope){
         return null
     }
     else if(removedIsotopes.includes(isotope)){//avoid both adding and removing
-        for(var i=0;i<removedIsotopes.length;i++){
+        for(let i=0;i<removedIsotopes.length;i++){
             if(removedIsotopes[i] === isotope){
                 removedIsotopes.splice(i,1);
                 break;
@@ -354,10 +384,57 @@ function addIsotope(isotope){
     //add it to the list
     newElement = "<p class='iso-label'>" + isotope  + "</p>"
     removeButton = '<img class="rmv-btn" src="/icons/file-x.svg" onclick="removeIsotope('+"'"+isotope+"'"+')">'
-    var ufl = document.getElementById("selectedIsotopes");
+    let ufl = document.getElementById("selectedIsotopes");
     ufl.innerHTML += DOMPurify.sanitize("<li class='list-group-item w-50' id='"+isotope+"'>" + newElement + removeButton +"</li>");
     document.getElementById("search-input").value = "";
     applyFilter();
+}
+
+function updateBatchDisplay(i){
+    let newBatch = parseInt(document.getElementById("batchSelect-"+i.toString()).value);
+    if(newBatch === i){
+        if(!batchList.includes(i)){
+            batchList.push(i);
+            for (let j = 0; j < filesList.length; j++) {
+                if (j !== i) {
+                    let selectObject = document.getElementById("batchSelect-" + j.toString());
+                    let value = selectObject.value;
+                    selectObject.innerHTML = selectObject.innerHTML + "<option value='" + i.toString() + "'>" + filesList[i] + "</option>";
+                    selectObject.value = value;
+                }
+            }
+        }
+    }
+    else if(batchList.includes(i)){
+        for(let j=0;j<filesList.length;j++){
+            let selectObject = document.getElementById("batchSelect-"+j.toString());
+            if(parseInt(selectObject.value) === i){
+                selectObject.value = newBatch.toString();
+            }
+            if(j!==i) {
+                let re = RegExp('<option value="' + i.toString() + ".+</option>");
+                let value = selectObject.value;
+                selectObject.innerHTML = selectObject.innerHTML.replace(re, "");
+                selectObject.value = value;
+            }
+        }
+        batchList.remove(i);
+    }
+}
+
+function submitBatchUpdates(){
+    let wsObj = {"type":"batchUpdate", "batches": {}};
+    for(let i=0; i < batchList.length; i++){
+        wsObj["batches"][batchList[i]] = [];
+    }
+    for(let j=0;j<filesList.length;j++) {
+        let selectObject = document.getElementById("batchSelect-" + j.toString());
+        let k = parseInt(selectObject.value);
+        if(k !== j){
+            wsObj["batches"][k].push(j);
+        }
+    }
+    ws.send(JSON.stringify(wsObj));
 }
 
 /**
@@ -370,7 +447,7 @@ function removeIsotope(name){
         return null;
     }
     else if(addedIsotopes.includes(name)){
-        for(var i=0;i<addedIsotopes.length;i++){
+        for(let i=0;i<addedIsotopes.length;i++){
             if(addedIsotopes[i] === name){
                 addedIsotopes.splice(i,1);
                 break;
@@ -386,14 +463,14 @@ function removeIsotope(name){
  * Update which isotopes from the standard file are shown based on the search term
  */
 function applyFilter(){
-    var input = document.getElementById("search-input");
-    var filter = input.value.toUpperCase();
+    let input = document.getElementById("search-input");
+    let filter = input.value.toUpperCase();
     ul = document.getElementById("allIsotopes");
     li = ul.getElementsByTagName('li');
     for (i = 0; i < li.length; i++) {
         a = li[i].getElementsByClassName("iso-label")[0];
         txtValue = a.textContent || a.innerText;
-        if (filter.length == 0 || !(txtValue.toUpperCase().startsWith(filter))) {//length = 0 is where no search has been entered, so no results should appear
+        if (filter.length === 0 || !(txtValue.toUpperCase().startsWith(filter))) {//length = 0 is where no search has been entered, so no results should appear
         li[i].style.display = "none";//hide
         } else {
         li[i].style.display = "";//show
@@ -405,7 +482,7 @@ function applyFilter(){
  * Update the times in the NAA window when the file is changed
  */
 function updateShownTimes(){
-    var times = NAATimes[filesList.indexOf(document.getElementById("timeFileSelect").value)];
+    let times = NAATimes[filesList.indexOf(document.getElementById("timeFileSelect").value)];
     if(times.length >= 1){
         document.getElementById("irrTimeInput").value = times[0].toString();
         document.getElementById("waitTimeInput").value = times[1].toString();

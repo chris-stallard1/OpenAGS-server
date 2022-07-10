@@ -84,15 +84,15 @@
     <script src="/static/js/project.js"></script>
     <script>
         window.entryFields = {{analysisObject.get_all_entry_fields()|string|safe}};
-        window.unfittedRegions = {{analysisObject.get_unfitted_ROIs()|string|safe}};
+        window.unfittedRegions = {{batch.get_unfitted_ROIs()|string|safe}};
         window.knownAnnots = {{analysisObject.get_known_annots()|string|safe}};
         window.newPeaks = [];
         window.newBackgrounds = [];
         window.originalEnergyBounds = [];
-        {% for i in range(analysisObject.ROIs|length) %}
+        {% for i in range(batch.ROIs|length) %}
             window.newPeaks[{{i}}] = {};
             window.newBackgrounds[{{i}}] = null;
-            window.originalEnergyBounds[{{i}}] = {{analysisObject.ROIs[i].get_range()|list}}
+            window.originalEnergyBounds[{{i}}] = {{batch.ROIs[i].get_range()|list}}
         {% endfor %}
     </script>
     <a style="display:none;">[</a>
@@ -174,18 +174,35 @@
           </div>
         </div>
       </div>
-      <div class="modal fade" tabindex="-1" data-bs-backdrop="static" id="redirectModal">
+      <div class="modal fade" tabindex="-1" data-bs-backdrop="static" id="fullResultsModal">
         <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">View Results</h5>
             </div>
             <div class="modal-body">
-              <p>Someone has submitted peak matches. Please continue to the results page or return to the main project page</p>
+              <p>All peak matches have been submitted. Please continue to the results page or return to the spectrum view page</p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-primary" onclick="window.location.replace(window.location.href.replace('/edit','/results'));">View Results</button>
-              <button type="button" class="btn btn-secondary" onclick="window.location.replace(window.location.href.replace('/edit','/view'));">Back to Main Page</button>
+              <button type="button" class="btn btn-primary" onclick="window.location.replace(window.location.href.replace(/\/edit\/\w+/,'/results'));">View Results</button>
+              <button type="button" class="btn btn-secondary" onclick="window.location.replace(window.location.href.replace(/\/edit\/\w+/,'/view'));">Back to Main Page</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal fade" tabindex="-1" data-bs-backdrop="static" id="partialResultsModal">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">View Results</h5>
+            </div>
+            <div class="modal-body">
+              <p>Peak matches for this batch have been submitted. Please analyze another batch, view the partial results, or return to the spectrum view page</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" onclick="window.location.replace(window.location.href.replace(/\/edit\/\w+/,'/edit'));">Next Batch</button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.replace(window.location.href.replace(/\/edit\/\w+/,'/results'));">To Partial Results</button>
+              <button type="button" class="btn btn-secondary" onclick="window.location.replace(window.location.href.replace(/\/edit\/\w+/,'/view'));">Back to Main Page</button>
             </div>
           </div>
         </div>
@@ -216,19 +233,29 @@
                 <div class="col-2">
                     <input type="text" id="cdTitle" class="form-control" onfocusout="updateTitle();" value="{{analysisObject.title}}"/>
                 </div>
-                <div class="col-6">
-                    <button class="btn btn-secondary" onclick="window.location.replace(window.location.href.replace('edit', 'view'));">Back to Spectrum View</button>
+                <div class="col-2">
+                    <button class="btn btn-secondary" onclick="window.location.replace(window.location.href.replace(/\/edit\/\w+/, 'view'));">Back to Spectrum View</button>
+                </div>
+                <div class="col-1">
+                    <h5>Batch:</h5>
+                </div>
+                <div class="col-3">
+                    <select id="batchSelect" class="form-select mb-3" onchange="changeBatch()">
+                        {% for b in analysisObject.batches %}
+                            <option {% if b==batch %}selected{% endif %} value="{{ b.pf_number }}">{{ analysisObject.file_list[b.pf_number] }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="col-3">
                     <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#downloadProjectModal">Download Project</button>
                     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">Delete Project</button>
                 
-                    </div>
+                </div>
             </div>
             <div class="row">
         <div id="mainCarousel" class="carousel slide" data-ride="carousel">
             <div class="carousel-inner">
-                {% for i in range(analysisObject.ROIs|length) %}
+                {% for i in range(batch.ROIs|length) %}
                     <div class="carousel-item container-fluid {% if i==0 %} active{% endif %}" id="ROI-{{i}}-container">
                         <div class="row align-items-start" id="mainRow-{{i}}" style="height:100%;">
                             <div class="col-8" id="ROI-{{i}}"></div>
@@ -239,13 +266,13 @@
                                     <div class="card card-body">
                                         <label for="fittedBgList-{{i}}">Background</label>
                                         <ul class="list-group" id="fittedBgList-{{i}}">
-                                            <li class='list-group-item compact' id="{{analysisObject.ROIs[i].get_background()|string}}">
-                                                <p class="bg-label">{{analysisObject.ROIs[i].get_background()|string}}</p>
+                                            <li class='list-group-item compact' id="{{batch.ROIs[i].get_background()|string}}">
+                                                <p class="bg-label">{{batch.ROIs[i].get_background()|string}}</p>
                                             </li>
                                         </ul>
                                         <label for="fittedPeaksList-{{i}}">Peaks</label>
                                         <ul class="list-group" id="fittedPeaksList-{{i}}">
-                                            {% for peak in analysisObject.ROIs[i].get_peaks() %}
+                                            {% for peak in batch.ROIs[i].get_peaks() %}
                                                 <li class='list-group-item compact' id="{{peak|string}}">
                                                     <p class = 'peak-label'>{{peak|string}}</p>
                                                     <img class="rmv-btn" src="/icons/file-x.svg" style="float:right;" onclick='remove_peak_from_list("{{peak|string}}")'/>
@@ -259,8 +286,8 @@
                                 <div class="collapse" id="editRangeDiv-{{i}}">
                                     <div class="card card-body">
                                         <ul class="list-group" id="editRangeList-{{i}}">
-                                            <li class='list-group-item'><p style='float:left;'>Min. Energy (keV):</p><input class='form-control w-50' style='float:right;' value='{{analysisObject.ROIs[i].get_range()[0]}}'/></li>
-                                            <li class='list-group-item'><p style='float:left;'>Max. Energy (keV):</p><input class='form-control w-50' style='float:right;' value='{{analysisObject.ROIs[i].get_range()[1]}}'/></li>
+                                            <li class='list-group-item'><p style='float:left;'>Min. Energy (keV):</p><input class='form-control w-50' style='float:right;' value='{{batch.ROIs[i].get_range()[0]}}'/></li>
+                                            <li class='list-group-item'><p style='float:left;'>Max. Energy (keV):</p><input class='form-control w-50' style='float:right;' value='{{batch.ROIs[i].get_range()[1]}}'/></li>
                                         </ul>
                                         <button class="btn btn-secondary w-25" onclick="resetEnergyBounds({{i}});">Reset</button>
                                     </div>
@@ -286,9 +313,9 @@
                                     <div class="card card-body">
                                         <label for="backgroundSelect-{{i}}">Background Type</label>
                                         <select class="form-select w-75" id="backgroundSelect-{{i}}">
-                                            <option selected>{{analysisObject.ROIs[i].get_background().get_type()}}</option>
+                                            <option selected>{{batch.ROIs[i].get_background().get_type()}}</option>
                                             {% for bgType in analysisObject.get_all_entry_fields()["backgrounds"].keys() %}
-                                                {% if bgType != analysisObject.ROIs[i].get_background().get_type() %}
+                                                {% if bgType != batch.ROIs[i].get_background().get_type() %}
                                                     <option>{{bgType}}</option>
                                                 {% endif %}
                                             {% endfor %}
@@ -301,13 +328,13 @@
                                 <div class="collapse show" id="knownPeakMatching">
                                     <div class="card card-body">
                                         <ul class="list-group" id="userPeakMatches-{{i}}">
-                                            {% for j in range(analysisObject.ROIs[i].knownPeaks|length) %}
-                                                {% set knownPeak =  analysisObject.ROIs[i].knownPeaks[j] %}
-                                                {% set closestPeak = analysisObject.ROIs[i].get_closest_peak(knownPeak) %}
+                                            {% for j in range(batch.ROIs[i].known_peaks|length) %}
+                                                {% set knownPeak =  batch.ROIs[i].known_peaks[j] %}
+                                                {% set closestPeak = batch.ROIs[i].get_closest_peak(knownPeak) %}
                                                 <li class="list-group-item">
                                                     <p style="float:left;" id="{{knownPeak.get_ctr()}}">{{knownPeak|string}}{{minSep}}</p>
                                                     <select class="form-select w-50 peak-match-select" style="float:right;" onchange="sendMatchUpdate({{i}},{{j}});">
-                                                        {% for peak in analysisObject.ROIs[i].get_peaks() %}
+                                                        {% for peak in batch.ROIs[i].get_peaks() %}
                                                             <option {% if peak == closestPeak%} selected {% endif %} value="{{peak.get_ctr()}}">{{peak|string}}</option>
                                                         {% endfor %}
                                                     </select>
@@ -322,13 +349,13 @@
                     <script>
                         updatePeakEntry({{i}});
                         var dataTrace = {
-                            x : {{analysisObject.ROIs[i].get_energies()}},
-                            y : {{analysisObject.ROIs[i].get_cps()}},
+                            x : {{batch.ROIs[i].get_energies()}},
+                            y : {{batch.ROIs[i].get_cps()}},
                             mode : "markers",
                             name : "Data"
                         };
-                        {% if analysisObject.ROIs[i].fitted %}
-                            var fittedXY = {{analysisObject.ROIs[i].get_fitted_curve()}};
+                        {% if batch.ROIs[i].fitted %}
+                            var fittedXY = {{batch.ROIs[i].get_fitted_curve()}};
                             var range = [fittedXY[0][0],fittedXY[0][fittedXY[0].length-1]]
                             var bgTrace = {
                                 x : fittedXY[0],
@@ -342,7 +369,7 @@
                                 mode : "lines",
                                 name : "Fit"
                             };
-                            var peakX = {{analysisObject.ROIs[i].get_peak_ctrs()}};
+                            var peakX = {{batch.ROIs[i].get_peak_ctrs()}};
                             var peakY = peakX.map(x => fittedXY[1][Math.floor((x - fittedXY[0][0])*100)]);
                             var peakTrace = {
                                 x : peakX,
@@ -354,9 +381,9 @@
                         {% else %}
                             var data = [dataTrace];
                         {% endif %}
-                        var range = {{analysisObject.ROIs[i].get_formatted_range()|safe}}
+                        var range = {{batch.ROIs[i].get_formatted_range()|safe}}
                         var layout = {
-                            title : range[0].toString() + "keV to " + range[1].toString() +"keV, fitting for Isotopes "+"{{', '.join(analysisObject.ROIs[i].get_isotopes())}}",
+                            title : range[0].toString() + "keV to " + range[1].toString() +"keV, fitting for Isotopes "+"{{', '.join(batch.ROIs[i].get_isotopes())}}",
                             autosize: true,
                             shapes: [],
                             margin: {
@@ -388,7 +415,7 @@
                     <img src="/icons/chevron-double-right.svg" id="chev_d_right" class="navImage" onmouseover="addBdr(this);" onmouseout = "remBdr(this);" onClick="toTopEnd()"/>
                     <img src="/icons/chevron-right.svg" id="chev_right" class="navImage" onmouseover="addBdr(this);" onmouseout = "remBdr(this);" onClick="upOne()"/>
                     <select id = "pageSelector" class="form-select" aria-label="Default select example" onchange="updatePage(this);">
-                        {% for i in range(analysisObject.ROIs|length) %}
+                        {% for i in range(batch.ROIs|length) %}
                             {% if i==0 %}
                                 <option selected value="1">1</option>
                             {% else %}
@@ -408,7 +435,7 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
     <script>
-        numberPages = {{analysisObject.ROIs|length}};
+        numberPages = {{batch.ROIs|length}};
     </script>
     <script src="/static/js/mainBottom.js"></script>
   </body>

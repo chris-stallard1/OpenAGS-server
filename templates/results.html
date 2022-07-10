@@ -74,52 +74,62 @@
             </div>
         </div>
     <div class="row">
-    <btn class="btn btn-primary mt w-25" onclick="toggleTables();">Toggle Format (By File/By Eval Type)</btn>
+    <btn class="btn btn-primary mt w-25" onclick="toggleTables();">Toggle Format (By Batch/By Eval Type)</btn>
     <div class="collapse show mt" id="byFile">
-        <div class="card card-body">
-            {% for i in range(analysisObject.fileData|length) %}
-                {% set fileData = analysisObject.fileData[i] %}
-                <h5>{{pathSplit(analysisObject.fileList[i])[1]}}</h5>
-                <a class="btn btn-secondary w-25" href="/results/{{projectID}}/{{pathSplit(analysisObject.fileList[i])[1].split('.')[0] + '_Analysis_Results.csv'}}">Get CSV</a>
-                {% for j in range(fileData["resultHeadings"]|length) %}
-                    <h6>{{fileData["evaluatorNames"][j]}}</h6>
-                    <table class="table table-bordered w-50">
-                        <thead>
-                            {% for heading in fileData["resultHeadings"][j] %}
-                                <th>{{heading}}</th>
-                            {% endfor %}
-                        </thead>
-                        {% for k in range(fileData["results"][j]|length) %}
-                            <tr>
-                                {% for res in fileData["results"][j][k] %}
-                                    <td>{{res}}</td>
+        {%  for batch in analysisObject.batches %}
+        {%  if batch.results_generated %}
+            <div class="card card-body">
+                <h5>{{pathSplit(analysisObject.file_list[batch.pf_number])[1]}}</h5>
+                {% for i in batch %}
+                    <div class="card card-body">
+                        {% set fileData = analysisObject.file_data[i] %}
+                        <h5>{{pathSplit(analysisObject.file_list[i])[1]}}</h5>
+                        <a class="btn btn-secondary w-25" href="/results/{{projectID}}/{{pathSplit(analysisObject.file_list[i])[1].split('.')[0] + '_Analysis_Results.csv'}}">Get CSV</a>
+                        {% for j in range(fileData["resultHeadings"]|length) %}
+                            <h6>{{fileData["evaluatorNames"][j]}}</h6>
+                            <table class="table table-bordered w-50">
+                                <thead>
+                                    {% for heading in fileData["resultHeadings"][j] %}
+                                        <th>{{heading}}</th>
+                                    {% endfor %}
+                                </thead>
+                                {% for k in range(fileData["results"][j]|length) %}
+                                    <tr>
+                                        {% for res in fileData["results"][j][k] %}
+                                            <td>{{res}}</td>
+                                        {% endfor %}
+                                    </tr>
                                 {% endfor %}
-                            </tr>
+                            </table>
                         {% endfor %}
-                    </table>
+                    </div>
                 {% endfor %}
-            {% endfor %}
-        </div>
+            </div>
+        {% endif %}
+        {%  endfor %}
     </div>
     <div class="collapse mt" id="byEvalType">
-        {% for i in range(analysisObject.fileData[0]["resultHeadings"]|length) %}
-            <h5>{{analysisObject.fileData[0]["evaluatorNames"][i]}}</h5>
+        {%  set ref_file = analysisObject.get_analyzed_batches()[0].primary_file %}
+        {% for i in range(ref_file["resultHeadings"]|length) %}
+            <h5>{{ref_file["evaluatorNames"][i]}}</h5>
             <table class="table table-bordered w-75">
             <thead>
                 <th>Filename</th>
-                {% for heading in analysisObject.fileData[0]["resultHeadings"][i] %}
+                {% for heading in ref_file["resultHeadings"][i] %}
                     <th>{{heading}}</th>
                 {% endfor %}
             </thead>
-            {% for j in range(analysisObject.fileData|length) %}
-                {% set fileData = analysisObject.fileData[j] %}
-                {% for k in range(fileData["results"][i]|length) %}
-                    <tr>
-                        <td>{{pathSplit(analysisObject.fileList[j])[1]}}</td>
-                        {% for res in fileData["results"][i][k] %}
-                            <td>{{res}}</td>
-                        {% endfor %}
-                    </tr>
+            {% for b in analysisObject.get_analyzed_batches() %}
+                {% for j in b %}
+                    {% set fileData = analysisObject.file_data[j] %}
+                    {% for k in range(fileData["results"][i]|length) %}
+                        <tr>
+                            <td>{{pathSplit(analysisObject.file_list[j])[1]}}</td>
+                            {% for res in fileData["results"][i][k] %}
+                                <td>{{res}}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
                 {% endfor %}
             {% endfor %}
             </table>
