@@ -1,40 +1,25 @@
-name: ci
+name: check-paper
 
-on:
-  push:
-    branches:
-      - 'main'
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - 'main'
+on: [push]
 
 jobs:
-  docker:
+  paper:
     runs-on: ubuntu-latest
+    name: Paper Draft
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v2
-      -
-        name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v3
+      - name: Build draft PDF
+        uses: openjournals/openjournals-draft-action@master
         with:
-          images: chrisstallard1/openags-container
-      -
-        name: Login to DockerHub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v1
+          journal: joss
+          # This should be the path to the paper within your repo.
+          paper-path: paper.md
+      - name: Upload
+        uses: actions/upload-artifact@v1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          name: paper
+          # This is the output path where Pandoc will write the compiled
+          # PDF. Note, this should be the same directory as the input
+          # paper.md
+          path: paper.pdf
